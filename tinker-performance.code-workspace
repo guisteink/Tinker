@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../gatling"
+		},
+		{
+			"path": "../go-ddd-hexagonal"
+		},
+		{
+			"path": "../tusk"
+		}
+	],
+	"settings": {}
+}

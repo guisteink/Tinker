@@ -1,13 +1,12 @@
 package model
 
-import (
-	"sync"
-
-	"github.com/guisteink/tinker/domain/model"
-)
-
 type Pool struct {
-	Workers []*model.Worker
+	Workers []*Worker
 	TaskCh  chan func()
-	wg      sync.WaitGroup
+}
+
+type Worker struct {
+	ID     int
+	Task   chan func()
+	Active bool
 }

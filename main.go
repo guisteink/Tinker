@@ -5,29 +5,42 @@ import (
 	"net/http"
 
 	"github.com/sirupsen/logrus"
+
+	"github.com/guisteink/tinker/config"
+	"github.com/guisteink/tinker/infraestructure/concurrency"
 )
 
 var logger = logrus.New()
 
 func main() {
-	logger.Info("tinker benchmark test")
+	logger.Info("[tinker-benchmark]")
 
-	// Definir a rota de health check
-	http.HandleFunc("/health", healthCheck)
+	numWorkers := config.NUM_WORKERS
+	pool := initializePool(numWorkers)
+	defer pool.Close()
 
-	// Iniciar o servidor na porta 8080
-	port := ":8080"
-	logger.Infof("Servidor iniciado na porta %s", port)
-	err := http.ListenAndServe(port, nil)
-	if err != nil {
-		logger.Fatal("Erro ao iniciar o servidor: ", err)
-	}
+	initializeHTTPServer(pool)
 }
 
-// Função para manipular a rota de health check
-func healthCheck(w http.ResponseWriter, r *http.Request) {
-	logger.Info("Rota de health check acessada")
-	// Responder com status OK
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Servidor está saudável")
+func initializePool(numWorkers int) *concurrency.PoolService {
+	logger.Info("Initializing worker pool")
+	return concurrency.Create(numWorkers)
+}
+
+func initializeHTTPServer(pool *concurrency.PoolService) {
+	port := config.PORT
+
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		logger.Info("Handling health check request")
+		fmt.Fprintf(w, "Server is OK")
+		pool.Submit(func() {
+			logger.Info("Health check request processed by a worker")
+		})
+	})
+
+	logger.Infof("Starting server on port %s", port)
+	err := http.ListenAndServe(port, nil)
+	if err != nil {
+		logger.Fatalf("Error starting server: %s", err)
+	}
 }
