@@ -28,7 +28,6 @@ func init() {
 
 func getNumWorkers() int {
 	numWorkersStr := os.Getenv("NUM_WORKERS")
-	logger.Info("numWorkersStr: ", numWorkersStr)
 	if numWorkersStr == "" {
 		return 5
 	}

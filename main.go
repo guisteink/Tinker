@@ -23,7 +23,6 @@ func main() {
 }
 
 func initializePool(numWorkers int) *concurrency.PoolService {
-	logger.Info("Initializing worker pool")
 	return concurrency.Create(numWorkers)
 }
 
@@ -31,10 +30,11 @@ func initializeHTTPServer(pool *concurrency.PoolService) {
 	port := config.PORT
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		logger.Info("")
 		logger.Info("Handling health check request")
-		fmt.Fprintf(w, "Server is OK")
+
 		pool.Submit(func() {
-			logger.Info("Health check request processed by a worker")
+			fmt.Fprintf(w, "Server is OK")
 		})
 	})
 

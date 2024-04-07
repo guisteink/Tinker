@@ -14,23 +14,24 @@ const (
 )
 
 type PoolService struct {
-	pool model.Pool
+	pool *model.Pool
 }
 
-func newPoolService(pool model.Pool) *PoolService {
-	return &PoolService{pool}
+func newPoolService(pool *model.Pool) *PoolService { // Modifique para aceitar um ponteiro para model.Pool
+	return &PoolService{pool: pool}
 }
 
 func executeTask(worker *model.Worker, task func()) {
 	task()
+	worker.SetActive(true) // Marca o worker como ativo novamente após a tarefa
 	logger.Infof(workerReceivedTaskMsg, worker.ID)
 }
 
 func (p *PoolService) Start(worker *model.Worker) {
-	go func() {
+	go func() { // start go-routine
 		logger.Infof(workerStartedMsg, worker.ID)
-		for {
-			select {
+		for { // start infinite loop, its when worker waits tasks to execute
+			select { // wait tasks between two possible channels worker.Task or p.pool.TaskCh
 			case task := <-worker.Task:
 				executeTask(worker, task)
 			case task := <-p.pool.TaskCh:
@@ -44,10 +45,11 @@ func Create(numWorkers int) *PoolService {
 	logger.Info("Creating a new pool")
 
 	pool := &model.Pool{
-		TaskCh: make(chan func()),
+		TaskCh:  make(chan func()),
+		Workers: make([]*model.Worker, 0),
 	}
 
-	poolService := newPoolService(*pool)
+	poolService := newPoolService(pool)
 
 	for i := 0; i < numWorkers; i++ {
 		worker := &model.Worker{
@@ -65,14 +67,14 @@ func Create(numWorkers int) *PoolService {
 }
 
 func (p *PoolService) Submit(task func()) {
-	for _, worker := range p.pool.Workers {
-		if worker.Active {
-			logger.Infof("Task submitted to worker %d", worker.ID)
+	for _, worker := range p.pool.Workers { // passa por todos os workers da pool
+		if worker.IsActive() { // no primeiro worker ativo
 			worker.Task <- task
+			worker.SetActive(false) // Marca o worker como inativo
 			return
 		}
 	}
-	p.pool.TaskCh <- task
+	p.pool.TaskCh <- task // caso nenhum worker ativo seja encontrado, envia a task para um canal compartilhado
 }
 
 func (p *PoolService) Close() {
