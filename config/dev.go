@@ -34,7 +34,7 @@ func getNumWorkers() int {
 	numWorkers, err := strconv.Atoi(numWorkersStr)
 	if err != nil {
 		logger.Warn("Error converting NUM_WORKERS to integer:", err)
-		return 5 // Use default value if conversion fails
+		return 2 // Use default value if conversion fails
 	}
 	return numWorkers
 }

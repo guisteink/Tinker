@@ -10,6 +10,12 @@ import (
 	"github.com/guisteink/tinker/infraestructure/concurrency"
 )
 
+const (
+	healthCheckRoute = "/health"
+	serverStartMsg   = "Starting server on port %s"
+	serverErrorMsg   = "Error starting server: %s"
+)
+
 var logger = logrus.New()
 
 func main() {
@@ -28,19 +34,24 @@ func initializePool(numWorkers int) *concurrency.PoolService {
 
 func initializeHTTPServer(pool *concurrency.PoolService) {
 	port := config.PORT
+	logger.Infof(serverStartMsg, port)
 
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		logger.Info("")
-		logger.Info("Handling health check request")
-
-		pool.Submit(func() {
-			fmt.Fprintf(w, "Server is OK")
-		})
+	pool.Submit(func() {
+		assignRoutes()
 	})
 
-	logger.Infof("Starting server on port %s", port)
 	err := http.ListenAndServe(port, nil)
 	if err != nil {
-		logger.Fatalf("Error starting server: %s", err)
+		logger.Fatalf(serverErrorMsg, err)
 	}
+}
+
+// assign all routes that will be available as tasks
+func assignRoutes() {
+	http.HandleFunc(healthCheckRoute, handleHealthCheck)
+}
+
+func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
+	logger.Info("Handling health check request")
+	fmt.Fprintf(w, "Server is OK")
 }
